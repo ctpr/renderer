@@ -1,2 +1,3 @@
 FROM python:2-onbuild
-CMD [ "python", "./start_server.py" ]
+MAINTAINER Christoph Russ <christoph.rus@gmail.com>
+CMD [ "python", "./start_renderer.py" ]
