@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="demo">
     <head>
-        <title>Hello jQuery</title>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <title>Hello SimScale</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+        <script src="js/threejs/PLYLoader.js"></script>
+        <script src="js/threejs/THREEx.WindowResize.js"></script>
+        <script src="js/threejs/OrbitControls.js"></script>
         <script src="js/loader.js"></script>
     </head>
 
     <body>
-        <div>
-            <p class="geometry">The file is </p>
+        <div ng-controller="ModelLoader">
+            <p>The ID is {{}}</p>
+            <p>The content is {{geometry}}</p>
         </div>
     </body>
 </html>

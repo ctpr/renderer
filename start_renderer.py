@@ -24,7 +24,7 @@ def main(argv):
 
     handler = SimpleHTTPServer.SimpleHTTPRequestHandler
 
-    httpd = SocketServer.TCPServer(("", m_port), handler)
+    httpd = SocketServer.TCPServer(("0.0.0.0", m_port), handler)
 
     print "HTTP Server running on port: "+str(m_port)
     httpd.serve_forever()
