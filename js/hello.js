@@ -6,4 +6,3 @@ $(document).ready(function() {
        $('.greeting-content').append(data.content);
     });
 });
-
