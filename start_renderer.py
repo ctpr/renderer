@@ -26,7 +26,7 @@ def main(argv):
 
     httpd = SocketServer.TCPServer(("", m_port), handler)
 
-    print "HTTP Server running on port: "+m_port
+    print "HTTP Server running on port: "+str(m_port)
     httpd.serve_forever()
 
 if __name__ == "__main__":
