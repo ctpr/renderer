@@ -7,13 +7,116 @@
         <script src="js/threejs/PLYLoader.js"></script>
         <script src="js/threejs/THREEx.WindowResize.js"></script>
         <script src="js/threejs/OrbitControls.js"></script>
+        <script src="js/threejs/stats.js"></script>
         <script src="js/loader.js"></script>
     </head>
 
     <body>
-        <div ng-controller="ModelLoader">
+        <!-- <div ng-controller="ModelLoader">
             <p>The Request Status is {{status}}</p>
             <p>The Ply File is {{geometry}}</p>
-        </div>
+        </div> -->
+    <script type="text/javascript">
+            var demo = {
+                scene: null,
+                camera: null,
+                renderer: null,
+                container: null,
+                controls: null,
+                clock: null,
+
+                init: function() {
+                    // create main scene
+                    this.scene = new THREE.Scene();
+                    this.scene.fog = new THREE.FogExp2(0xcce0ff, 0.0003);
+
+                    var SCREEN_WIDTH = window.innerWidth,
+                        SCREEN_HEIGHT = window.innerHeight;
+
+                    // prepare camera
+                    var VIEW_ANGLE = 60, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+                    this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+                    this.scene.add(this.camera);
+                    this.camera.position.set(-4, 1, -4);
+                    this.camera.lookAt(new THREE.Vector3(0,0,0));
+
+                    // prepare renderer
+                    this.renderer = new THREE.WebGLRenderer({ antialias:true });
+                    this.renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+                    this.renderer.setClearColor(this.scene.fog.color);
+                    this.renderer.shadowMapEnabled = true;
+                    this.renderer.shadowMapSoft = true;
+
+                    // prepare container
+                    this.container = document.createElement('div');
+                    document.body.appendChild(this.container);
+                    this.container.appendChild(this.renderer.domElement);
+
+                    // events
+                    THREEx.WindowResize(this.renderer, this.camera);
+
+                    // prepare controls (OrbitControls)
+                    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                    this.controls.target = new THREE.Vector3(0, 0, 0);
+                    this.controls.maxDistance = 3000;
+
+                    // prepare clock
+                    this.clock = new THREE.Clock();
+
+                    this.scene.add( new THREE.AmbientLight(0x606060) );
+
+                    // light
+                    var dirLight = new THREE.DirectionalLight(0xffffff);
+                    dirLight.position.set(200, 200, 1000).normalize();
+                    this.camera.add(dirLight);
+                    this.camera.add(dirLight.target);
+
+                    // load models
+                    this.loadModels();
+                },
+                loadModels: function() {
+                    // here we will load all the models ...
+                }
+            };
+
+            // prepare PLY loader and load the model
+            var oPlyLoader = new THREE.PLYLoader();
+            oPlyLoader.load('tmp/sample_data_scalar.ply', function(geometry) {
+              // var material = new THREE.MeshBasicMaterial({color: 0xff4444});
+              var mesh = new THREE.Mesh(geometry);
+              demo.scene.add(mesh);
+            });
+
+            // Animate the scene
+            function animate() {
+              requestAnimationFrame(animate);
+              render();
+              update();
+            }
+
+            // Update controls
+            function update() {
+              demo.controls.update(demo.clock.getDelta());
+            }
+
+            // Render the scene
+            function render() {
+              if (demo.renderer) {
+                demo.renderer.render(demo.scene, demo.camera);
+              }
+            }
+
+            // Initialize lesson on page load
+            function initializeLesson() {
+              demo.init();
+              animate();
+            }
+
+            if (window.addEventListener)
+              window.addEventListener('load', initializeLesson, false);
+            else if (window.attachEvent)
+              window.attachEvent('onload', initializeLesson);
+            else window.onload = initializeLesson;
+        </script>
     </body>
 </html>
