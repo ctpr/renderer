@@ -335,7 +335,9 @@
                 var iPt = intersects[ 0 ].point;
                 var iFace = intersects[ 0 ].face;
                 var iPosAttr = intersects[ 0 ].object.geometry.getAttribute("position");
-                if (iPosAttr && iPosAttr.length > 0) {
+                var iRequestAttr = intersects[ 0 ].object.geometry.getAttribute(propertyType);
+                if (iPosAttr && iRequestAttr && iPosAttr.length > 0 && iRequestAttr.length > 0) {
+                    // get all vertices to compute barycentric coordinates
                     var vertex0 = new THREE.Vector3(iPosAttr.array[3*iFace.a],
                                                     iPosAttr.array[3*iFace.a + 1],
                                                     iPosAttr.array[3*iFace.a + 2]);
@@ -346,12 +348,27 @@
                                                     iPosAttr.array[3*iFace.c + 1],
                                                     iPosAttr.array[3*iFace.c + 2]);
 
-                    window.alert("InterC: "+iPt.x+" "+iPt.y+" "+iPt.z+"\n"+
-                                 "InterF: "+iFace.a+" "+iFace.b+" "+iFace.c+"\n"+
-                                 "InterVC: "+iPosAttr.array.length+"\n"+
-                                 "InterF: "+vertex0.x+" "+vertex0.y+" "+vertex0.z+"\n"+
-                                 "InterF: "+vertex1.x+" "+vertex1.y+" "+vertex1.z+"\n"+
-                                 "InterF: "+vertex2.x+" "+vertex2.y+" "+vertex2.z+"\n");
+                    var triangle = new THREE.Triangle ( vertex0, vertex1, vertex2 );
+                    var bary = triangle.barycoordFromPoint( iPt );
+
+                    // use barycentric coordinates to compute interpolated value
+                    // FIXME: assuming single value attribute here
+                    //        could be extended to support more dimensions
+                    requestValue = iRequestAttr.array[iFace.a] * bary.x +
+                                   iRequestAttr.array[iFace.b] * bary.y +
+                                   iRequestAttr.array[iFace.c] * bary.z;
+
+                    // DEBUG
+                    // window.alert("InterC: "+iPt.x+" "+iPt.y+" "+iPt.z+"\n"+
+                    //              "InterF: "+iFace.a+" "+iFace.b+" "+iFace.c+"\n"+
+                    //              "InterVC: "+iPosAttr.array.length+"\n"+
+                    //              "InterF: "+vertex0.x+" "+vertex0.y+" "+vertex0.z+"\n"+
+                    //              "InterF: "+vertex1.x+" "+vertex1.y+" "+vertex1.z+"\n"+
+                    //              "InterF: "+vertex2.x+" "+vertex2.y+" "+vertex2.z+"\n"+
+                    //              "BaryC: "+bary.x+" "+bary.y+" "+bary.z+"\n"+
+                    //              "RequV: "+requestValue);
+
+                    return requestValue;
                  }
             }
 
@@ -378,7 +395,7 @@
                 var intersects = demo.raycaster.intersectObjects( demo.meshObjects );
                 if ( intersects.length > 0 ) {
                     var scalarAtIntersection = getInterpolatedProperty("scalar", intersects);
-
+                    window.alert("Scalar: "+scalarAtIntersection);
                 }
             }
 
