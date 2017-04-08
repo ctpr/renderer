@@ -11,6 +11,7 @@
         <script src="js/threejs/PLYLoader.js"></script>
         <script src="js/threejs/THREEx.WindowResize.js"></script>
         <script src="js/threejs/OrbitControls.js"></script>
+        <script src="js/threejs/Lut.js"></script>
         <script src="js/loader.js"></script>
     </head>
 
@@ -26,14 +27,25 @@
             <select name="Files" id="geometry_files" onchange="replaceModels(this.options[this.selectedIndex].value)">
                 <option value="none">none</option>
             </select>
-            <select name="Color Mode:" id="color_mode" onchange="updateMaterials()">
-                <option value="single">Single Color</option>
-                <option value="vertex">Vertex Color</option>
-            </select>
             <select name="Shading Mode:" id="shading_mode" onchange="updateMaterials()">
-                <option value="phong">Per-Texel Shading (Phong)</option>
-                <option value="lambert">Per-Vertex Shading (Lambert)</option>
-                <option value="basic">Single Color (Basic)</option>
+                <option value="phong">Phong</option>
+                <option value="lambert">Lambert</option>
+                <option value="basic">Basic</option>
+            </select>
+            <select name="Color Mode:" id="color_mode" onchange="updateMaterials()">
+                <option value="vertex">Vertex Color</option>
+                <option value="single">Single Color</option>
+            </select>
+            <select name="Color Mapping:" id="color_mapping" onchange="updateColors()">
+                <option value="scalar">Scalar Mapping</option>
+                <option value="color">Color Mapping</option>
+                <option value="normal">Normal Mapping</option>
+            </select>
+            <select name="Color Map:" id="color_map" onchange="updateColors()">
+                <option value="grayscale">Greyscale</option>
+                <option value="rainbow">Rainbow</option>
+                <option value="cooltowarm">Cool to warm</option>
+                <option value="blackbody">Black body</option>
             </select>
             <font face="courier" size="1">SimScale PostProcessing Demo v1.0</font>
         </div>
@@ -43,6 +55,8 @@
             var demo = {
                 scene: null,
                 camera: null,
+                overlayScene: null,
+                overlayCamera: null,
                 renderer: null,
                 container: null,
                 controls: null,
@@ -57,6 +71,7 @@
 
                     // Main scene
                     this.scene = new THREE.Scene();
+                    this.overlayScene = new THREE.Scene();
 
                     // Ambient light initialization
                     this.scene.add( new THREE.AmbientLight(0x606060, 1.0) );
@@ -76,17 +91,20 @@
                     this.camera.add(dirLight);
                     this.camera.add(dirLight.target);
 
+                    // Overlay camera initialization
+                    this.overlayCamera = new THREE.OrthographicCamera( windowWidth * -0.5, windowWidth * 0.5, windowHeight * 0.5, windowHeight * -0.5, 0.1, 100 );
+
                     if(Detector.webgl) {
                         this.renderer = new THREE.WebGLRenderer({antialias:true});
                         this.hasWebGL = true;
                     } else {
                         this.renderer = new THREE.CanvasRenderer();
                     }
-                    this.renderer = new THREE.WebGLRenderer({ antialias:true });
                     this.renderer.setSize(windowWidth-14, windowHeight-40);
                     this.renderer.setClearColor(0xffffff, 1);
                     this.renderer.shadowMap.enabled = true;
                     this.renderer.shadowMapSoft = true;
+                    this.renderer.autoClear = false; // to allow overlay
 
                     this.container = document.createElement('div');
                     document.body.appendChild(this.container);
@@ -101,6 +119,7 @@
                 }
             };
 
+            // Clear the scene of all meshes
             function clearScene() {
                 for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
                     let child = demo.scene.children[ i ];
@@ -144,7 +163,94 @@
                 return material;
             }
 
-            // Replace all Models
+            function mapColor(scalar) {
+                var colorMapSelect = document.getElementById("color_map");
+                colorMap = colorMapSelect.options[colorMapSelect.selectedIndex].value;
+
+                lut = new THREE.Lut( colorMap, '256' );
+                lut.setMin( 0.0 );
+                lut.setMax( 1.0 );
+
+                legend = lut.setLegendOn( { 'layout':'vertical' } );
+                demo.overlayCamera.add(legend);
+                legend.position.set(0, 0, -4.0);
+
+                color = lut.getColor( scalar );
+
+                if ( color == undefined ) {
+                    return [scalar, 0.0, 0.0];
+                } else {
+                    return [color.r, color.g, color.b];
+                }
+            }
+
+            // Generate the color mapping for an input mesh
+            function generateColorMapping(mesh) {
+                // Get current color mapping mode
+                var colorSelect = document.getElementById("color_mapping");
+                mappingColor = colorSelect.options[colorSelect.selectedIndex].value;
+
+                var colors = [];
+
+                if (mappingColor === "scalar") {
+                    // mapping scalars to color
+                    var scalarAttribute = mesh.geometry.getAttribute("scalar");
+                    if (scalarAttribute && scalarAttribute.length > 0) {
+                        for ( var i = 0; i < scalarAttribute.length; i ++ ) {
+                            color = mapColor(scalarAttribute.array[i]);
+                            colors.push(color[0], color[1], color[2]);
+                        }
+                    } else {
+                        window.alert("No scalar input for scalar color mapping");
+                        return;
+                    }
+                } else if (mappingColor === "color") {
+                    // Color mode
+                    // FIXME: once a color has been mapped, this actually won't be able to get the original color back since we are not reloading the mesh
+                    var colorAttribute = mesh.geometry.getAttribute("color");
+                    if (colorAttribute && colorAttribute.length > 0) {
+                        colors = colorAttribute.array;
+                    } else {
+                        window.alert("No color input for color mapping");
+                        return;
+                    }
+                } else if (mappingColor === "normal") {
+                    // mapping normals to color
+                    var normalAttribute = mesh.geometry.getAttribute("normal");
+                    if (normalAttribute && normalAttribute.length > 0) {
+                        for ( var i = 0; i < normalAttribute.length; i ++ ) {
+                            colors.push( normalAttribute.array[i] );
+                        }
+                    } else {
+                        window.alert("No normal input for normal color mapping");
+                        return;
+                    }
+                }
+
+                var colorAttribute = mesh.geometry.getAttribute("color");
+                if (colorAttribute) {
+                    mesh.geometry.removeAttribute( 'color' );
+                }
+
+                mesh.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+            }
+
+            // Create mesh with material, compute normals, bounding box
+            // Map scalar values to colors (if present)
+            function generateMesh(geometry, material) {
+                // Actually generate the mesh
+                var mesh = new THREE.Mesh(geometry, material);
+
+                mesh.geometry.computeFaceNormals();
+                mesh.geometry.computeVertexNormals();
+                mesh.geometry.computeBoundingBox();
+
+                generateColorMapping(mesh);
+
+                return mesh;
+            }
+
+            // Clear scene and load new model
             function replaceModels(url) {
                 clearScene();
                 var loader = new THREE.PLYLoader();
@@ -153,10 +259,7 @@
                     var material = generateMaterial();
 
                     // Create the mesh
-                    var mesh = new THREE.Mesh(geometry, material);
-                    mesh.geometry.computeFaceNormals();
-                    mesh.geometry.computeVertexNormals();
-                    mesh.geometry.computeBoundingBox();
+                    var mesh = generateMesh(geometry, material);
                     var boundingBox = mesh.geometry.boundingBox;
 
                     var center = new THREE.Vector3();
@@ -175,12 +278,23 @@
                 });
             }
 
+            // Re-generate the materials for all present meshes
             function updateMaterials() {
                 for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
                     let child = demo.scene.children[ i ];
                     if ( child instanceof THREE.Mesh ) {
                         child.material = generateMaterial();
                         child.material.needsUpdate = true;
+                    }
+                }
+            }
+
+            // Re-generate the color for all present meshes
+            function updateColors() {
+                for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
+                    let child = demo.scene.children[ i ];
+                    if ( child instanceof THREE.Mesh ) {
+                        generateColorMapping(child);
                     }
                 }
             }
@@ -200,7 +314,10 @@
             // Render the scene
             function render() {
                 if (demo.renderer) {
+                    demo.renderer.clear();
                     demo.renderer.render(demo.scene, demo.camera);
+                    demo.renderer.clearDepth();
+                    demo.renderer.render( demo.overlayScene, demo.overlayCamera );
                 }
             }
 
