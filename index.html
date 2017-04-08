@@ -26,7 +26,11 @@
             <select name="Files" id="geometry_files" onchange="replaceModels(this.options[this.selectedIndex].value)">
                 <option value="none">none</option>
             </select>
-            <select name="Shading Mode:" id="shading_mode" onchange="updateMaterials(this.options[this.selectedIndex].value)">
+            <select name="Color Mode:" id="color_mode" onchange="updateMaterials()">
+                <option value="single">Single Color</option>
+                <option value="vertex">Vertex Color</option>
+            </select>
+            <select name="Shading Mode:" id="shading_mode" onchange="updateMaterials()">
                 <option value="phong">Per-Texel Shading (Phong)</option>
                 <option value="lambert">Per-Vertex Shading (Lambert)</option>
                 <option value="basic">Single Color (Basic)</option>
@@ -62,7 +66,7 @@
                     dirLight.position.set(2.0, 2.0, 10.0);
 
                     // Camera initialization
-                    this.camera = new THREE.PerspectiveCamera(60, ASPECT, 0.001, 2000.0);
+                    this.camera = new THREE.PerspectiveCamera(60, ASPECT, 0.001, 10000.0);
                     this.scene.add(this.camera);
                     this.camera.position.set(-2, 2, -2);
                     this.camera.lookAt(new THREE.Vector3(0,0,0));
@@ -91,7 +95,7 @@
 
                     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
                     this.controls.target = new THREE.Vector3(0, 0, 0);
-                    this.controls.maxDistance = 2000.0;
+                    this.controls.maxDistance = 10000.0;
 
                     this.clock = new THREE.Clock();
                 }
@@ -107,7 +111,13 @@
             }
 
             // Material builder
-            function generateMaterial(requestType) {
+            function generateMaterial() {
+                var colorSelect = document.getElementById("color_mode");
+                var shadeSelect = document.getElementById("shading_mode");
+
+                requestColor = colorSelect.options[colorSelect.selectedIndex].value;
+                requestShade = shadeSelect.options[shadeSelect.selectedIndex].value;
+
                 var material = new THREE.MeshBasicMaterial({ color: 0xff4242 });
 
                 if(!demo.hasWebGL) {
@@ -115,14 +125,19 @@
                     return material;
                 }
 
-                if (requestType == "lambert") {
-                    material = new THREE.MeshLambertMaterial({color: 0x42ff42,
-                                                              wireframe: false});
-                } else if (requestType == "phong") {
-                    material = new THREE.MeshPhongMaterial({color: 0x4242ff,
-                                                            wireframe: false});
+                if (requestShade === "lambert") {
+                    material = new THREE.MeshLambertMaterial({color: 0x42ff42, wireframe: false});
+                } else if (requestShade === "phong") {
+                    material = new THREE.MeshPhongMaterial({color: 0x4242ff, wireframe: false});
                 }
 
+                if (requestColor === "vertex") {
+                    material.color.setHex(0xffffff);
+                    material.vertexColors = THREE.VertexColors;
+                }
+
+                // Double sided would be better for triangle rendering
+                // Unfortunately, it causes artifacts in many models
                 // material.side = THREE.DoubleSide;
                 material.shading = THREE.SmoothShading;
 
@@ -135,9 +150,7 @@
                 var loader = new THREE.PLYLoader();
                 loader.load(url, function(geometry) {
 
-                    var shadeSelect = document.getElementById("shading_mode");
-
-                    var material = generateMaterial(shadeSelect.options[shadeSelect.selectedIndex].value);
+                    var material = generateMaterial();
 
                     // Create the mesh
                     var mesh = new THREE.Mesh(geometry, material);
@@ -162,11 +175,11 @@
                 });
             }
 
-            function updateMaterials(requestType) {
+            function updateMaterials() {
                 for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
                     let child = demo.scene.children[ i ];
                     if ( child instanceof THREE.Mesh ) {
-                        child.material = generateMaterial(requestType);
+                        child.material = generateMaterial();
                         child.material.needsUpdate = true;
                     }
                 }

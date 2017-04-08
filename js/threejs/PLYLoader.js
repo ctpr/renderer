@@ -252,13 +252,15 @@ THREE.PLYLoader.prototype = {
 		function parseASCII( data ) {
 
 			// PLY ascii format specification, as per http://en.wikipedia.org/wiki/PLY_(file_format)
+			// Extended for SimScale Demo
 
 			var buffer = {
 				indices : [],
 				vertices : [],
 				normals : [],
 				uvs : [],
-				colors : []
+				colors : [],
+				scalars : []
 			};
 
 			var result;
@@ -340,6 +342,12 @@ THREE.PLYLoader.prototype = {
 
 			}
 
+			if ( buffer.scalars.length > 0 ) {
+
+				geometry.addAttribute( 'scalar', new THREE.Float32BufferAttribute( buffer.scalars, 1 ) );
+
+			}
+
 			geometry.computeBoundingSphere();
 
 			return geometry;
@@ -402,6 +410,14 @@ THREE.PLYLoader.prototype = {
 
 					buffer.indices.push( vertex_indices[ 0 ], vertex_indices[ 1 ], vertex_indices[ 3 ] );
 					buffer.indices.push( vertex_indices[ 1 ], vertex_indices[ 2 ], vertex_indices[ 3 ] );
+
+				}
+
+			} else if ( elementName === 'scalar' ) {
+
+				if ( 'a' in element ) {
+
+					buffer.scalars.push( element.a );
 
 				}
 
@@ -473,7 +489,8 @@ THREE.PLYLoader.prototype = {
 				vertices : [],
 				normals : [],
 				uvs : [],
-				colors : []
+				colors : [],
+				scalars : []
 			};
 
 			var header = parseHeader( bin2str( data ) );
