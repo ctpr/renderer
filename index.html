@@ -2,9 +2,25 @@
 <html ng-app="demo">
     <head>
         <title>Hello SimScale</title>
+        <style>
+            body {
+                font-family: Monospace;
+                background-color: #ffffff;
+                margin: 0px;
+                overflow: hidden;
+            }
+            div.absolute {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+            }
+        </style>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    </head>
+
+    <body>
         <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
         <script src="js/threejs/Detector.js"></script>
         <script src="js/threejs/CanvasRenderer.js"></script>
@@ -12,10 +28,9 @@
         <script src="js/threejs/OrbitControls.js"></script>
         <script src="js/threejs/Lut.js"></script>
         <script src="js/loader.js"></script>
-    </head>
 
-    <body>
-        <div ng-controller="ModelSelector">
+        <div>
+        <div ng-controller="ModelSelector" class="absolute">
             <script>
             function updateGeometries (paths) {
                 $.each(paths, function() {
@@ -48,8 +63,6 @@
             </select>
             <font face="courier" size="1">SimScale PostProcessing Demo v1.0</font>
         </div>
-
-        <div style="border:0px">
         <script type="text/javascript">
             var demo = {
                 scene: null,
