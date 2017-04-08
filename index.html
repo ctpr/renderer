@@ -7,7 +7,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
         <script src="js/threejs/Detector.js"></script>
-        <script src="js/threejs/Projector.js"></script>
+        <!-- <script src="js/threejs/Projector.js"></script> -->
         <script src="js/threejs/CanvasRenderer.js"></script>
         <script src="js/threejs/PLYLoader.js"></script>
         <script src="js/threejs/OrbitControls.js"></script>
@@ -97,7 +97,7 @@
                     } else {
                         this.renderer = new THREE.CanvasRenderer();
                     }
-                    this.renderer.setSize(windowWidth-14, windowHeight-40);
+                    this.renderer.setSize(windowWidth, windowHeight);
                     this.renderer.setClearColor(0xffffff, 1);
                     this.renderer.shadowMap.enabled = true;
                     this.renderer.shadowMapSoft = true;
@@ -330,6 +330,31 @@
                 animate();
             }
 
+            // Get interpolated value on face
+            function getInterpolatedProperty( propertyType, intersects ) {
+                var iPt = intersects[ 0 ].point;
+                var iFace = intersects[ 0 ].face;
+                var iPosAttr = intersects[ 0 ].object.geometry.getAttribute("position");
+                if (iPosAttr && iPosAttr.length > 0) {
+                    var vertex0 = new THREE.Vector3(iPosAttr.array[3*iFace.a],
+                                                    iPosAttr.array[3*iFace.a + 1],
+                                                    iPosAttr.array[3*iFace.a + 2]);
+                    var vertex1 = new THREE.Vector3(iPosAttr.array[3*iFace.b],
+                                                    iPosAttr.array[3*iFace.b + 1],
+                                                    iPosAttr.array[3*iFace.b + 2]);
+                    var vertex2 = new THREE.Vector3(iPosAttr.array[3*iFace.c],
+                                                    iPosAttr.array[3*iFace.c + 1],
+                                                    iPosAttr.array[3*iFace.c + 2]);
+
+                    window.alert("InterC: "+iPt.x+" "+iPt.y+" "+iPt.z+"\n"+
+                                 "InterF: "+iFace.a+" "+iFace.b+" "+iFace.c+"\n"+
+                                 "InterVC: "+iPosAttr.array.length+"\n"+
+                                 "InterF: "+vertex0.x+" "+vertex0.y+" "+vertex0.z+"\n"+
+                                 "InterF: "+vertex1.x+" "+vertex1.y+" "+vertex1.z+"\n"+
+                                 "InterF: "+vertex2.x+" "+vertex2.y+" "+vertex2.z+"\n");
+                 }
+            }
+
             var lastTouchStart;
 
             function onDocumentTouchStart( event ) {
@@ -345,20 +370,22 @@
             }
 
             function onDocumentDblClick( event ) {
+                // FIXME: adding HTML UI elements above the scene
+                // shifts the render window down and makes this inaccurate
                 demo.mouse.x = ( event.clientX / demo.renderer.domElement.clientWidth ) * 2 - 1;
                 demo.mouse.y = - ( event.clientY / demo.renderer.domElement.clientHeight ) * 2 + 1;
                 demo.raycaster.setFromCamera( demo.mouse, demo.camera );
                 var intersects = demo.raycaster.intersectObjects( demo.meshObjects );
                 if ( intersects.length > 0 ) {
-                    var intersectPt = intersects[ 0 ].point;
-                    window.alert("Intersection: "+intersectPt.x+" "+intersectPt.y+" "+intersectPt.z);
+                    var scalarAtIntersection = getInterpolatedProperty("scalar", intersects);
+
                 }
             }
 
             function onWindowResize() {
                 demo.camera.aspect = window.innerWidth / window.innerHeight;
                 demo.camera.updateProjectionMatrix();
-                demo.renderer.setSize( window.innerWidth - 14, window.innerHeight - 40 );
+                demo.renderer.setSize( window.innerWidth, window.innerHeight );
             }
 
             if (window.addEventListener) {
