@@ -61,12 +61,16 @@
                 clock: null,
                 hasWebGL: false,
                 raycaster: null,
+                meshObjects: null,
 
                 init: function() {
                     // Window layout
                     var windowWidth = window.innerWidth;
                     var windowHeight = window.innerHeight;
                     var ASPECT = windowWidth / windowHeight;
+
+                    // Store a reference to the loaded mesh object(s)
+                    this.meshObjects = [];
 
                     // Main scene
                     this.scene = new THREE.Scene();
@@ -122,6 +126,7 @@
                         demo.scene.remove(child);
                     }
                 }
+                demo.meshObjects = [];
             }
 
             // Material builder
@@ -256,7 +261,6 @@
                 clearScene();
                 var loader = new THREE.PLYLoader();
                 loader.load(url, function(geometry) {
-
                     var material = generateMaterial();
 
                     // Create the mesh
@@ -276,6 +280,7 @@
                     demo.camera.lookAt(center);
                     demo.camera.position.set(position.x, position.y, position.z);
                     demo.scene.add(mesh);
+                    demo.meshObjects.push(mesh);
                 });
             }
 
@@ -325,6 +330,24 @@
                 animate();
             }
 
+            function onDocumentTouchStart( event ) {
+                // event.preventDefault();
+                event.clientX = event.touches[0].clientX;
+                event.clientY = event.touches[0].clientY;
+                onDocumentMouseDown( event );
+            }
+
+            function onDocumentMouseDown( event ) {
+                // event.preventDefault();
+                demo.mouse.x = ( event.clientX / demo.renderer.domElement.clientWidth ) * 2 - 1;
+                demo.mouse.y = - ( event.clientY / demo.renderer.domElement.clientHeight ) * 2 + 1;
+                demo.raycaster.setFromCamera( demo.mouse, demo.camera );
+                var intersects = demo.raycaster.intersectObjects( demo.meshObjects );
+                if ( intersects.length > 0 ) {
+                    window.alert("Intersection: "+intersects[ 0 ].point.x+" "+intersects[ 0 ].point.y+" "+intersects[ 0 ].point.z);
+                }
+            }
+
             function onWindowResize() {
                 demo.camera.aspect = window.innerWidth / window.innerHeight;
                 demo.camera.updateProjectionMatrix();
@@ -338,6 +361,11 @@
                 window.attachEvent( 'onload', initialize );
             } else {
                 window.onload = initialize;
+            }
+
+            if (document.addEventListener) {
+                document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+                document.addEventListener( 'touchstart', onDocumentTouchStart, false );
             }
 
         </script>
