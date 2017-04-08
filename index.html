@@ -7,9 +7,9 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
         <script src="js/threejs/Detector.js"></script>
+        <script src="js/threejs/Projector.js"></script>
         <script src="js/threejs/CanvasRenderer.js"></script>
         <script src="js/threejs/PLYLoader.js"></script>
-        <script src="js/threejs/THREEx.WindowResize.js"></script>
         <script src="js/threejs/OrbitControls.js"></script>
         <script src="js/threejs/Lut.js"></script>
         <script src="js/loader.js"></script>
@@ -60,6 +60,7 @@
                 controls: null,
                 clock: null,
                 hasWebGL: false,
+                raycaster: null,
 
                 init: function() {
                     // Window layout
@@ -74,7 +75,6 @@
                     this.scene.add( new THREE.AmbientLight(0x606060, 1.0) );
                     // Create a directional light
                     var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-                    // dirLight.position.set(200, 200, 1000).normalize();
                     dirLight.position.set(2.0, 2.0, 10.0);
 
                     // Camera initialization
@@ -83,8 +83,7 @@
                     this.camera.position.set(-2, 2, -2);
                     this.camera.lookAt(new THREE.Vector3(0,0,0));
 
-                    // Add the directional light
-                    // this.scene.add(dirLight);
+                    // Add the directional light to the camera
                     this.camera.add(dirLight);
                     this.camera.add(dirLight.target);
 
@@ -102,7 +101,10 @@
                     this.container = document.createElement('div');
                     document.body.appendChild(this.container);
                     this.container.appendChild(this.renderer.domElement);
-                    THREEx.WindowResize(this.renderer, this.camera);
+
+                    // Scene interaction setup
+                    this.raycaster = new THREE.Raycaster();
+                    this.mouse = new THREE.Vector2();
 
                     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
                     this.controls.target = new THREE.Vector3(0, 0, 0);
@@ -323,17 +325,17 @@
                 animate();
             }
 
-            // iOS iframe auto-resize workaround
-            // if ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) {
-            //     demo.scene.style.width = getComputedStyle( demo.scene ).width;
-            //     demo.scene.style.height = getComputedStyle( demo.scene ).height;
-            //     demo.scene.setAttribute( 'scrolling', 'no' );
-            // }
+            function onWindowResize() {
+                demo.camera.aspect = window.innerWidth / window.innerHeight;
+                demo.camera.updateProjectionMatrix();
+                demo.renderer.setSize( window.innerWidth - 14, window.innerHeight - 40 );
+            }
 
             if (window.addEventListener) {
-                window.addEventListener('load', initialize, false);
+                window.addEventListener( 'load', initialize, false );
+                window.addEventListener( 'resize', onWindowResize, false );
             } else if (window.attachEvent) {
-                window.attachEvent('onload', initialize);
+                window.attachEvent( 'onload', initialize );
             } else {
                 window.onload = initialize;
             }
