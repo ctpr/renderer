@@ -3,20 +3,39 @@
     <head>
         <title>Hello SimScale</title>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+        <script src="js/threejs/Detector.js"></script>
+        <script src="js/threejs/CanvasRenderer.js"></script>
         <script src="js/threejs/PLYLoader.js"></script>
         <script src="js/threejs/THREEx.WindowResize.js"></script>
         <script src="js/threejs/OrbitControls.js"></script>
-        <script src="js/threejs/stats.js"></script>
         <script src="js/loader.js"></script>
     </head>
 
     <body>
-        <!-- <div ng-controller="ModelLoader">
-            <p>The Request Status is {{status}}</p>
-            <p>The Ply File is {{geometry}}</p>
-        </div> -->
-    <script type="text/javascript">
+        <div ng-controller="ModelSelector">
+            <script>
+            function updateGeometries (paths) {
+                $.each(paths, function() {
+                    $("<option value='http://35.158.16.68:9000/geometries/" + this + "'>" + this + "</option>").appendTo("#geometry_files");
+                });
+            }
+            </script>
+            <select name="Files" id="geometry_files" onchange="replaceModels(this.options[this.selectedIndex].value)">
+                <option value="none">none</option>
+            </select>
+            <select name="Shading Mode:" id="shading_mode" onchange="updateMaterials(this.options[this.selectedIndex].value)">
+                <option value="phong">Per-Texel Shading (Phong)</option>
+                <option value="lambert">Per-Vertex Shading (Lambert)</option>
+                <option value="basic">Single Color (Basic)</option>
+            </select>
+            <font face="courier" size="1">SimScale PostProcessing Demo v1.0</font>
+        </div>
+
+        <div style="border:0px">
+        <script type="text/javascript">
             var demo = {
                 scene: null,
                 camera: null,
@@ -24,99 +43,176 @@
                 container: null,
                 controls: null,
                 clock: null,
+                hasWebGL: false,
 
                 init: function() {
-                    // create main scene
+                    // Window layout
+                    var windowWidth = window.innerWidth;
+                    var windowHeight = window.innerHeight;
+                    var ASPECT = windowWidth / windowHeight;
+
+                    // Main scene
                     this.scene = new THREE.Scene();
-                    this.scene.fog = new THREE.FogExp2(0xcce0ff, 0.0003);
 
-                    var SCREEN_WIDTH = window.innerWidth,
-                        SCREEN_HEIGHT = window.innerHeight;
+                    // Ambient light initialization
+                    this.scene.add( new THREE.AmbientLight(0x606060, 1.0) );
+                    // Create a directional light
+                    var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                    // dirLight.position.set(200, 200, 1000).normalize();
+                    dirLight.position.set(2.0, 2.0, 10.0);
 
-                    // prepare camera
-                    var VIEW_ANGLE = 60, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
-                    this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+                    // Camera initialization
+                    this.camera = new THREE.PerspectiveCamera(60, ASPECT, 0.001, 2000.0);
                     this.scene.add(this.camera);
-                    this.camera.position.set(-4, 1, -4);
+                    this.camera.position.set(-2, 2, -2);
                     this.camera.lookAt(new THREE.Vector3(0,0,0));
 
-                    // prepare renderer
-                    this.renderer = new THREE.WebGLRenderer({ antialias:true });
-                    this.renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-                    this.renderer.setClearColor(this.scene.fog.color);
-                    this.renderer.shadowMapEnabled = true;
-                    this.renderer.shadowMapSoft = true;
-
-                    // prepare container
-                    this.container = document.createElement('div');
-                    document.body.appendChild(this.container);
-                    this.container.appendChild(this.renderer.domElement);
-
-                    // events
-                    THREEx.WindowResize(this.renderer, this.camera);
-
-                    // prepare controls (OrbitControls)
-                    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-                    this.controls.target = new THREE.Vector3(0, 0, 0);
-                    this.controls.maxDistance = 3000;
-
-                    // prepare clock
-                    this.clock = new THREE.Clock();
-
-                    this.scene.add( new THREE.AmbientLight(0x606060) );
-
-                    // light
-                    var dirLight = new THREE.DirectionalLight(0xffffff);
-                    dirLight.position.set(200, 200, 1000).normalize();
+                    // Add the directional light
+                    // this.scene.add(dirLight);
                     this.camera.add(dirLight);
                     this.camera.add(dirLight.target);
 
-                    // load models
-                    this.loadModels();
-                },
-                loadModels: function() {
-                    // here we will load all the models ...
+                    if(Detector.webgl) {
+                        this.renderer = new THREE.WebGLRenderer({antialias:true});
+                        this.hasWebGL = true;
+                    } else {
+                        this.renderer = new THREE.CanvasRenderer();
+                    }
+                    this.renderer = new THREE.WebGLRenderer({ antialias:true });
+                    this.renderer.setSize(windowWidth-14, windowHeight-40);
+                    this.renderer.setClearColor(0xffffff, 1);
+                    this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMapSoft = true;
+
+                    this.container = document.createElement('div');
+                    document.body.appendChild(this.container);
+                    this.container.appendChild(this.renderer.domElement);
+                    THREEx.WindowResize(this.renderer, this.camera);
+
+                    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                    this.controls.target = new THREE.Vector3(0, 0, 0);
+                    this.controls.maxDistance = 2000.0;
+
+                    this.clock = new THREE.Clock();
                 }
             };
 
-            // prepare PLY loader and load the model
-            var oPlyLoader = new THREE.PLYLoader();
-            oPlyLoader.load('tmp/sample_data_scalar.ply', function(geometry) {
-              // var material = new THREE.MeshBasicMaterial({color: 0xff4444});
-              var mesh = new THREE.Mesh(geometry);
-              demo.scene.add(mesh);
-            });
+            function clearScene() {
+                for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
+                    let child = demo.scene.children[ i ];
+                    if ( child instanceof THREE.Mesh ) {
+                        demo.scene.remove(child);
+                    }
+                }
+            }
+
+            // Material builder
+            function generateMaterial(requestType) {
+                var material = new THREE.MeshBasicMaterial({ color: 0xff4242 });
+
+                if(!demo.hasWebGL) {
+                    window.alert("No WebGL available - using Basic material model !");
+                    return material;
+                }
+
+                if (requestType == "lambert") {
+                    material = new THREE.MeshLambertMaterial({color: 0x42ff42,
+                                                              wireframe: false});
+                } else if (requestType == "phong") {
+                    material = new THREE.MeshPhongMaterial({color: 0x4242ff,
+                                                            wireframe: false});
+                }
+
+                // material.side = THREE.DoubleSide;
+                material.shading = THREE.SmoothShading;
+
+                return material;
+            }
+
+            // Replace all Models
+            function replaceModels(url) {
+                clearScene();
+                var loader = new THREE.PLYLoader();
+                loader.load(url, function(geometry) {
+
+                    var shadeSelect = document.getElementById("shading_mode");
+
+                    var material = generateMaterial(shadeSelect.options[shadeSelect.selectedIndex].value);
+
+                    // Create the mesh
+                    var mesh = new THREE.Mesh(geometry, material);
+                    mesh.geometry.computeFaceNormals();
+                    mesh.geometry.computeVertexNormals();
+                    mesh.geometry.computeBoundingBox();
+                    var boundingBox = mesh.geometry.boundingBox;
+
+                    var center = new THREE.Vector3();
+                    center.subVectors( boundingBox.max, boundingBox.min );
+                    center.multiplyScalar( 0.5 );
+                    center.add( boundingBox.min );
+
+                    var position = new THREE.Vector3();
+                    position.subVectors( boundingBox.max, boundingBox.min );
+                    position.multiplyScalar( 1.5 );
+                    position.add( boundingBox.min );
+
+                    demo.camera.lookAt(center);
+                    demo.camera.position.set(position.x, position.y, position.z);
+                    demo.scene.add(mesh);
+                });
+            }
+
+            function updateMaterials(requestType) {
+                for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
+                    let child = demo.scene.children[ i ];
+                    if ( child instanceof THREE.Mesh ) {
+                        child.material = generateMaterial(requestType);
+                        child.material.needsUpdate = true;
+                    }
+                }
+            }
 
             // Animate the scene
             function animate() {
-              requestAnimationFrame(animate);
-              render();
-              update();
+                requestAnimationFrame(animate);
+                render();
+                update();
             }
 
             // Update controls
             function update() {
-              demo.controls.update(demo.clock.getDelta());
+                demo.controls.update(demo.clock.getDelta());
             }
 
             // Render the scene
             function render() {
-              if (demo.renderer) {
-                demo.renderer.render(demo.scene, demo.camera);
-              }
+                if (demo.renderer) {
+                    demo.renderer.render(demo.scene, demo.camera);
+                }
             }
 
-            // Initialize lesson on page load
-            function initializeLesson() {
-              demo.init();
-              animate();
+            // Initialize on page load
+            function initialize() {
+                demo.init();
+                animate();
             }
 
-            if (window.addEventListener)
-              window.addEventListener('load', initializeLesson, false);
-            else if (window.attachEvent)
-              window.attachEvent('onload', initializeLesson);
-            else window.onload = initializeLesson;
+            // iOS iframe auto-resize workaround
+            // if ( /(iPad|iPhone|iPod)/g.test( navigator.userAgent ) ) {
+            //     demo.scene.style.width = getComputedStyle( demo.scene ).width;
+            //     demo.scene.style.height = getComputedStyle( demo.scene ).height;
+            //     demo.scene.setAttribute( 'scrolling', 'no' );
+            // }
+
+            if (window.addEventListener) {
+                window.addEventListener('load', initialize, false);
+            } else if (window.attachEvent) {
+                window.attachEvent('onload', initialize);
+            } else {
+                window.onload = initialize;
+            }
+
         </script>
+        </div>
     </body>
 </html>

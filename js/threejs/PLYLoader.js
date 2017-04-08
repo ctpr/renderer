@@ -368,6 +368,26 @@ THREE.PLYLoader.prototype = {
 
 					buffer.colors.push( element.red / 255.0, element.green / 255.0, element.blue / 255.0 );
 
+				} else if ( 'r' in element && 'g' in element && 'b' in element ) {
+
+					buffer.colors.push( element.r, element.g, element.b );
+
+				}
+
+			} else if ( elementName === 'normal' ) {
+
+				buffer.normals.push( element.nx, element.ny, element.nz );
+
+			} else if ( elementName === 'color' ) {
+
+				if ( 'red' in element && 'green' in element && 'blue' in element ) {
+
+					buffer.colors.push( element.red / 255.0, element.green / 255.0, element.blue / 255.0 );
+
+				} else if ( 'r' in element && 'g' in element && 'b' in element ) {
+
+					buffer.colors.push( element.r, element.g, element.b );
+
 				}
 
 			} else if ( elementName === 'face' ) {
