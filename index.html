@@ -330,21 +330,28 @@
                 animate();
             }
 
+            var lastTouchStart;
+
             function onDocumentTouchStart( event ) {
-                // event.preventDefault();
-                event.clientX = event.touches[0].clientX;
-                event.clientY = event.touches[0].clientY;
-                onDocumentMouseDown( event );
+                var now = new Date().getTime();
+                var timeBetween = now - lastTouchStart;
+                lastTouchStart = now;
+                // Detect a double tap
+                if((timeBetween < 500) && (timeBetween > 0)){
+                    event.clientX = event.touches[0].clientX;
+                    event.clientY = event.touches[0].clientY;
+                    onDocumentDblClick( event );
+                }
             }
 
-            function onDocumentMouseDown( event ) {
-                // event.preventDefault();
+            function onDocumentDblClick( event ) {
                 demo.mouse.x = ( event.clientX / demo.renderer.domElement.clientWidth ) * 2 - 1;
                 demo.mouse.y = - ( event.clientY / demo.renderer.domElement.clientHeight ) * 2 + 1;
                 demo.raycaster.setFromCamera( demo.mouse, demo.camera );
                 var intersects = demo.raycaster.intersectObjects( demo.meshObjects );
                 if ( intersects.length > 0 ) {
-                    window.alert("Intersection: "+intersects[ 0 ].point.x+" "+intersects[ 0 ].point.y+" "+intersects[ 0 ].point.z);
+                    var intersectPt = intersects[ 0 ].point;
+                    window.alert("Intersection: "+intersectPt.x+" "+intersectPt.y+" "+intersectPt.z);
                 }
             }
 
@@ -364,7 +371,7 @@
             }
 
             if (document.addEventListener) {
-                document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+                document.addEventListener( 'dblclick', onDocumentDblClick, false );
                 document.addEventListener( 'touchstart', onDocumentTouchStart, false );
             }
 
