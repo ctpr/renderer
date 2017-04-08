@@ -42,10 +42,10 @@
                 <option value="normal">Normal Mapping</option>
             </select>
             <select name="Color Map:" id="color_map" onchange="updateColors()">
-                <option value="grayscale">Greyscale</option>
-                <option value="rainbow">Rainbow</option>
                 <option value="cooltowarm">Cool to warm</option>
+                <option value="rainbow">Rainbow</option>
                 <option value="blackbody">Black body</option>
+                <option value="grayscale">Greyscale</option>
             </select>
             <font face="courier" size="1">SimScale PostProcessing Demo v1.0</font>
         </div>
@@ -55,8 +55,6 @@
             var demo = {
                 scene: null,
                 camera: null,
-                overlayScene: null,
-                overlayCamera: null,
                 renderer: null,
                 container: null,
                 controls: null,
@@ -71,7 +69,6 @@
 
                     // Main scene
                     this.scene = new THREE.Scene();
-                    this.overlayScene = new THREE.Scene();
 
                     // Ambient light initialization
                     this.scene.add( new THREE.AmbientLight(0x606060, 1.0) );
@@ -91,9 +88,6 @@
                     this.camera.add(dirLight);
                     this.camera.add(dirLight.target);
 
-                    // Overlay camera initialization
-                    this.overlayCamera = new THREE.OrthographicCamera( windowWidth * -0.5, windowWidth * 0.5, windowHeight * 0.5, windowHeight * -0.5, 0.1, 100 );
-
                     if(Detector.webgl) {
                         this.renderer = new THREE.WebGLRenderer({antialias:true});
                         this.hasWebGL = true;
@@ -104,7 +98,6 @@
                     this.renderer.setClearColor(0xffffff, 1);
                     this.renderer.shadowMap.enabled = true;
                     this.renderer.shadowMapSoft = true;
-                    this.renderer.autoClear = false; // to allow overlay
 
                     this.container = document.createElement('div');
                     document.body.appendChild(this.container);
@@ -163,6 +156,7 @@
                 return material;
             }
 
+            // Apply lookUpTable to map scalar value to a color
             function mapColor(scalar) {
                 var colorMapSelect = document.getElementById("color_map");
                 colorMap = colorMapSelect.options[colorMapSelect.selectedIndex].value;
@@ -171,9 +165,14 @@
                 lut.setMin( 0.0 );
                 lut.setMax( 1.0 );
 
-                legend = lut.setLegendOn( { 'layout':'vertical' } );
-                demo.overlayCamera.add(legend);
-                legend.position.set(0, 0, -4.0);
+                var legend = lut.setLegendOn( { 'layout':'vertical', 'position': { 'x': 2.4, 'y': 0.0, 'z': -4.0 } } );
+                var labels = lut.setLegendLabels( { 'title': 'Scalar', 'um': 'U', 'ticks': 5 } );
+                demo.camera.add( legend );
+                demo.camera.add( labels['title'] );
+                for ( var i = 0; i < Object.keys( labels[ 'ticks' ] ).length; i++ ) {
+                    demo.camera.add ( labels[ 'ticks' ][ i ] );
+                    demo.camera.add ( labels[ 'lines' ][ i ] );
+                }
 
                 color = lut.getColor( scalar );
 
@@ -206,7 +205,7 @@
                     }
                 } else if (mappingColor === "color") {
                     // Color mode
-                    // FIXME: once a color has been mapped, this actually won't be able to get the original color back since we are not reloading the mesh
+                    // FIXME: once a color has been mapped, this actually won't be able to get the original color back unless we are reloading the mesh
                     var colorAttribute = mesh.geometry.getAttribute("color");
                     if (colorAttribute && colorAttribute.length > 0) {
                         colors = colorAttribute.array;
@@ -314,10 +313,7 @@
             // Render the scene
             function render() {
                 if (demo.renderer) {
-                    demo.renderer.clear();
-                    demo.renderer.render(demo.scene, demo.camera);
-                    demo.renderer.clearDepth();
-                    demo.renderer.render( demo.overlayScene, demo.overlayCamera );
+                    demo.renderer.render( demo.scene, demo.camera );
                 }
             }
 
