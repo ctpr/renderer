@@ -18,13 +18,11 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-        <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
     </head>
 
     <body>
-        <script src="js/bootstrap.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
         <script src="js/threejs/Detector.js"></script>
         <script src="js/threejs/CanvasRenderer.js"></script>
@@ -63,18 +61,18 @@
                 <option value="lambert">Lambert</option>
                 <option value="basic">Basic</option>
             </select>
-            <select class="basic-single" name="Color Mode:" id="color_mode" onchange="updateMaterials()">
+            <select class="basic-single" name="Color Mode:" id="color_mode" style="width: 100px" onchange="updateMaterials()">
                 <option value="vertex">Vertex Color</option>
                 <option value="single">Single Color</option>
             </select>
-            <select class="basic-single" name="Color Mapping:" id="color_mapping" onchange="updateColors()">
+            <select class="basic-single" name="Color Mapping:" id="color_mapping" style="width: 100px" onchange="updateColors()">
                 <option value="scalar">Scalar Mapping</option>
                 <option value="color">Color Mapping</option>
                 <option value="normal">Normal Mapping</option>
             </select>
             <select class="basic-single" name="Color Map:" id="color_map" onchange="updateColors()">
-                <option value="cooltowarm">Cool to warm</option>
                 <option value="rainbow">Rainbow</option>
+                <option value="cooltowarm">Cool to warm</option>
                 <option value="blackbody">Black body</option>
                 <option value="grayscale">Greyscale</option>
             </select>
