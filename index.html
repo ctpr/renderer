@@ -140,6 +140,14 @@
                 }
             };
 
+            // Clear any camera overlays
+            function clearCamera() {
+                for (let i = demo.overlayObjects.length - 1; i >= 0 ; i--) {
+                    demo.camera.remove(demo.overlayObjects[i]);
+                }
+                demo.overlayObjects = [];
+            }
+
             // Clear the scene of all meshes
             function clearScene() {
                 for (let i = demo.scene.children.length - 1; i >= 0 ; i--) {
@@ -148,11 +156,7 @@
                         demo.scene.remove(child);
                     }
                 }
-                for (let i = demo.overlayObjects.length - 1; i >= 0 ; i--) {
-                    demo.camera.remove(demo.overlayObjects[i]);
-                }
                 demo.renderObjects = [];
-                demo.overlayObjects = [];
             }
 
             // Material builder
@@ -179,6 +183,11 @@
                 if (requestColor === "vertex") {
                     material.color.setHex(0xffffff);
                     material.vertexColors = THREE.VertexColors;
+                    updateColors();
+                } else
+                {
+                    // remove any possibly created legend when not choosing vertex coloring
+                    clearCamera();
                 }
 
                 // Double sided would be better for triangle rendering
@@ -249,6 +258,7 @@
                     var colorAttribute = mesh.geometry.getAttribute("color");
                     if (colorAttribute && colorAttribute.length > 0) {
                         colors = colorAttribute.array;
+                        clearCamera();
                     } else {
                         console.log("No color input for color mapping");
                         console.log("Switching to normal mapping mode");
@@ -263,6 +273,7 @@
                         for ( var i = 0; i < normalAttribute.length; i ++ ) {
                             colors.push( normalAttribute.array[i] );
                         }
+                        clearCamera();
                     } else {
                         console.log("No normal input for normal color mapping");
                         return;
@@ -295,6 +306,7 @@
             // Clear scene and load new model
             function replaceModels(url) {
                 clearScene();
+                clearCamera();
                 var loader = new THREE.PLYLoader();
                 loader.load(url, function(geometry) {
                     var material = generateMaterial();
@@ -400,6 +412,7 @@
 
             var lastTouchStart;
 
+            // pass on double tap to double click
             function onDocumentTouchStart( event ) {
                 var now = new Date().getTime();
                 var timeBetween = now - lastTouchStart;
@@ -412,9 +425,8 @@
                 }
             }
 
+            // intersection test on double click
             function onDocumentDblClick( event ) {
-                // FIXME: adding HTML UI elements above the scene
-                // shifts the render window down and makes this inaccurate
                 demo.mouse.x = ( event.clientX / demo.renderer.domElement.clientWidth ) * 2 - 1;
                 demo.mouse.y = - ( event.clientY / demo.renderer.domElement.clientHeight ) * 2 + 1;
                 demo.raycaster.setFromCamera( demo.mouse, demo.camera );
