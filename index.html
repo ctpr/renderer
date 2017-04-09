@@ -18,9 +18,13 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
     </head>
 
     <body>
+        <script src="js/bootstrap.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
         <script src="js/threejs/Detector.js"></script>
         <script src="js/threejs/CanvasRenderer.js"></script>
@@ -46,24 +50,29 @@
                 }
             }
             </script>
-            <select name="Files" id="geometry_files" onchange="replaceModels(this.options[this.selectedIndex].value)">
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    $(".basic-single").select2();
+                });
+            </script>
+            <select class="basic-single" name="Files" id="geometry_files" style="width: 200px" onchange="replaceModels(this.options[this.selectedIndex].value)">
                 <!-- <option value="none">none</option> -->
             </select>
-            <select name="Shading Mode:" id="shading_mode" onchange="updateMaterials()">
+            <select class="basic-single" name="Shading Mode:" id="shading_mode" onchange="updateMaterials()">
                 <option value="phong">Phong</option>
                 <option value="lambert">Lambert</option>
                 <option value="basic">Basic</option>
             </select>
-            <select name="Color Mode:" id="color_mode" onchange="updateMaterials()">
+            <select class="basic-single" name="Color Mode:" id="color_mode" onchange="updateMaterials()">
                 <option value="vertex">Vertex Color</option>
                 <option value="single">Single Color</option>
             </select>
-            <select name="Color Mapping:" id="color_mapping" onchange="updateColors()">
+            <select class="basic-single" name="Color Mapping:" id="color_mapping" onchange="updateColors()">
                 <option value="scalar">Scalar Mapping</option>
                 <option value="color">Color Mapping</option>
                 <option value="normal">Normal Mapping</option>
             </select>
-            <select name="Color Map:" id="color_map" onchange="updateColors()">
+            <select class="basic-single" name="Color Map:" id="color_map" onchange="updateColors()">
                 <option value="cooltowarm">Cool to warm</option>
                 <option value="rainbow">Rainbow</option>
                 <option value="blackbody">Black body</option>
@@ -250,6 +259,7 @@
                         console.log("Switching to color mapping mode");
                         colorSelect.selectedIndex ++;
                         mappingColor = "color";
+                        $('#color_mapping').val(mappingColor).trigger('change.select2');
                     }
                 }
                 if (mappingColor === "color") {
@@ -264,6 +274,7 @@
                         console.log("Switching to normal mapping mode");
                         colorSelect.selectedIndex ++;
                         mappingColor = "normal";
+                        $('#color_mapping').val(mappingColor).trigger('change.select2');
                     }
                 }
                 if (mappingColor === "normal") {
@@ -297,6 +308,7 @@
                 mesh.geometry.computeFaceNormals();
                 mesh.geometry.computeVertexNormals();
                 mesh.geometry.computeBoundingBox();
+                mesh.geometry.computeBoundingSphere();
 
                 generateColorMapping(mesh);
 
@@ -314,18 +326,14 @@
                     // Create the mesh
                     var mesh = generateMesh(geometry, material);
                     var boundingBox = mesh.geometry.boundingBox;
-
-                    var center = new THREE.Vector3();
-                    center.subVectors( boundingBox.max, boundingBox.min );
-                    center.multiplyScalar( 0.5 );
-                    center.add( boundingBox.min );
+                    var boundingSphere = mesh.geometry.boundingSphere;
 
                     var position = new THREE.Vector3();
                     position.subVectors( boundingBox.max, boundingBox.min );
                     position.multiplyScalar( 1.5 );
                     position.add( boundingBox.min );
 
-                    demo.camera.lookAt(center);
+                    demo.camera.lookAt(boundingSphere.center);
                     demo.camera.position.set(position.x, position.y, position.z);
                     demo.scene.add(mesh);
                     demo.renderObjects.push(mesh);
