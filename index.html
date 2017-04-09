@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html ng-app="demo">
     <head>
-        <title>Hello SimScale</title>
+        <title>Technical Demo</title>
         <style>
             body {
                 font-family: Monospace;
@@ -33,13 +33,21 @@
         <div ng-controller="ModelSelector" class="absolute">
             <script>
             function updateGeometries (paths) {
+                src_url = "http://35.158.16.68:9000/geometries/"
+                paths.sort();
                 $.each(paths, function() {
-                    $("<option value='http://35.158.16.68:9000/geometries/" + this + "'>" + this + "</option>").appendTo("#geometry_files");
+                    $("<option value='" + src_url + this + "'>" + this + "</option>").appendTo("#geometry_files");
                 });
+                tetEntryIndex = paths.indexOf(src_url + "tetrahedron.ply");
+                if (tetEntryIndex >= 0) {
+                    $("#geometry_files").val(src_url + "tetrahedron.ply");
+                } else if (paths.length > 0) {
+                    replaceModels(src_url + paths[0]);
+                }
             }
             </script>
             <select name="Files" id="geometry_files" onchange="replaceModels(this.options[this.selectedIndex].value)">
-                <option value="none">none</option>
+                <!-- <option value="none">none</option> -->
             </select>
             <select name="Shading Mode:" id="shading_mode" onchange="updateMaterials()">
                 <option value="phong">Phong</option>
@@ -61,7 +69,7 @@
                 <option value="blackbody">Black body</option>
                 <option value="grayscale">Greyscale</option>
             </select>
-            <font face="courier" size="1">SimScale PostProcessing Demo v1.0</font>
+            <font size="1">Technology Demo v1.0 (c) Christoph Russ 2017</font>
         </div>
         <script type="text/javascript">
             var demo = {
@@ -73,7 +81,8 @@
                 clock: null,
                 hasWebGL: false,
                 raycaster: null,
-                meshObjects: null,
+                renderObjects: null,
+                overlayObjects: null,
 
                 init: function() {
                     // Window layout
@@ -82,7 +91,8 @@
                     var ASPECT = windowWidth / windowHeight;
 
                     // Store a reference to the loaded mesh object(s)
-                    this.meshObjects = [];
+                    this.renderObjects = [];
+                    this.overlayObjects = [];
 
                     // Main scene
                     this.scene = new THREE.Scene();
@@ -138,7 +148,11 @@
                         demo.scene.remove(child);
                     }
                 }
-                demo.meshObjects = [];
+                for (let i = demo.overlayObjects.length - 1; i >= 0 ; i--) {
+                    demo.camera.remove(demo.overlayObjects[i]);
+                }
+                demo.renderObjects = [];
+                demo.overlayObjects = [];
             }
 
             // Material builder
@@ -152,7 +166,7 @@
                 var material = new THREE.MeshBasicMaterial({ color: 0xff4242 });
 
                 if(!demo.hasWebGL) {
-                    window.alert("No WebGL available - using Basic material model !");
+                    console.log("No WebGL available - using Basic material model !");
                     return material;
                 }
 
@@ -188,9 +202,13 @@
                 var labels = lut.setLegendLabels( { 'title': 'Scalar', 'um': 'U', 'ticks': 5 } );
                 demo.camera.add( legend );
                 demo.camera.add( labels['title'] );
+                demo.overlayObjects.push( legend );
+                demo.overlayObjects.push( labels['title'] );
                 for ( var i = 0; i < Object.keys( labels[ 'ticks' ] ).length; i++ ) {
                     demo.camera.add ( labels[ 'ticks' ][ i ] );
                     demo.camera.add ( labels[ 'lines' ][ i ] );
+                    demo.overlayObjects.push( labels[ 'ticks' ][ i ] );
+                    demo.overlayObjects.push( labels[ 'lines' ][ i ] );
                 }
 
                 color = lut.getColor( scalar );
@@ -219,20 +237,26 @@
                             colors.push(color[0], color[1], color[2]);
                         }
                     } else {
-                        window.alert("No scalar input for scalar color mapping");
-                        return;
+                        console.log("No scalar input for scalar color mapping");
+                        console.log("Switching to color mapping mode");
+                        colorSelect.selectedIndex ++;
+                        mappingColor = "color";
                     }
-                } else if (mappingColor === "color") {
+                }
+                if (mappingColor === "color") {
                     // Color mode
-                    // FIXME: once a color has been mapped, this actually won't be able to get the original color back unless we are reloading the mesh
+                    // NOTE: once this color has been overwritten by any other color mapping, it actually won't be possible to get the original color back unless we are reloading the mesh
                     var colorAttribute = mesh.geometry.getAttribute("color");
                     if (colorAttribute && colorAttribute.length > 0) {
                         colors = colorAttribute.array;
                     } else {
-                        window.alert("No color input for color mapping");
-                        return;
+                        console.log("No color input for color mapping");
+                        console.log("Switching to normal mapping mode");
+                        colorSelect.selectedIndex ++;
+                        mappingColor = "normal";
                     }
-                } else if (mappingColor === "normal") {
+                }
+                if (mappingColor === "normal") {
                     // mapping normals to color
                     var normalAttribute = mesh.geometry.getAttribute("normal");
                     if (normalAttribute && normalAttribute.length > 0) {
@@ -240,7 +264,7 @@
                             colors.push( normalAttribute.array[i] );
                         }
                     } else {
-                        window.alert("No normal input for normal color mapping");
+                        console.log("No normal input for normal color mapping");
                         return;
                     }
                 }
@@ -292,7 +316,7 @@
                     demo.camera.lookAt(center);
                     demo.camera.position.set(position.x, position.y, position.z);
                     demo.scene.add(mesh);
-                    demo.meshObjects.push(mesh);
+                    demo.renderObjects.push(mesh);
                 });
             }
 
@@ -364,21 +388,11 @@
                     var bary = triangle.barycoordFromPoint( iPt );
 
                     // use barycentric coordinates to compute interpolated value
-                    // FIXME: assuming single value attribute here
-                    //        could be extended to support more dimensions
+                    // assuming single value attribute here
+                    // could be extended to support more dimensions
                     requestValue = iRequestAttr.array[iFace.a] * bary.x +
                                    iRequestAttr.array[iFace.b] * bary.y +
                                    iRequestAttr.array[iFace.c] * bary.z;
-
-                    // DEBUG
-                    // window.alert("InterC: "+iPt.x+" "+iPt.y+" "+iPt.z+"\n"+
-                    //              "InterF: "+iFace.a+" "+iFace.b+" "+iFace.c+"\n"+
-                    //              "InterVC: "+iPosAttr.array.length+"\n"+
-                    //              "InterF: "+vertex0.x+" "+vertex0.y+" "+vertex0.z+"\n"+
-                    //              "InterF: "+vertex1.x+" "+vertex1.y+" "+vertex1.z+"\n"+
-                    //              "InterF: "+vertex2.x+" "+vertex2.y+" "+vertex2.z+"\n"+
-                    //              "BaryC: "+bary.x+" "+bary.y+" "+bary.z+"\n"+
-                    //              "RequV: "+requestValue);
 
                     return requestValue;
                  }
@@ -404,7 +418,7 @@
                 demo.mouse.x = ( event.clientX / demo.renderer.domElement.clientWidth ) * 2 - 1;
                 demo.mouse.y = - ( event.clientY / demo.renderer.domElement.clientHeight ) * 2 + 1;
                 demo.raycaster.setFromCamera( demo.mouse, demo.camera );
-                var intersects = demo.raycaster.intersectObjects( demo.meshObjects );
+                var intersects = demo.raycaster.intersectObjects( demo.renderObjects );
                 if ( intersects.length > 0 ) {
                     var scalarAtIntersection = getInterpolatedProperty("scalar", intersects);
                     window.alert("Scalar: "+scalarAtIntersection);
