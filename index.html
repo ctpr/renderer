@@ -76,7 +76,7 @@
                 <option value="blackbody">Black body</option>
                 <option value="grayscale">Greyscale</option>
             </select>
-            <font size="1">Technology Demo v1.0 (c) Christoph Russ 2017</font>
+            <font size="1">Technology Demo v1.0.1 (c) Christoph Russ 2017</font>
         </div>
         <script type="text/javascript">
             var demo = {
@@ -121,7 +121,12 @@
                     this.camera.add(dirLight.target);
 
                     if(Detector.webgl) {
-                        this.renderer = new THREE.WebGLRenderer({antialias:true});
+                        this.renderer = new THREE.WebGLRenderer(
+                                                    {
+                                                        antialias:true,
+                                                        logarithmicDepthBuffer: true
+                                                    }
+                                                );
                         this.hasWebGL = true;
                     } else {
                         this.renderer = new THREE.CanvasRenderer();
