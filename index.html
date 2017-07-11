@@ -35,7 +35,7 @@
         <div ng-controller="ModelSelector" class="absolute">
             <script>
             function updateGeometries (paths) {
-                src_url = "http://35.158.16.68:9000/geometries/"
+                src_url = "http://geometry.duckdns.org:9000/geometries/"
                 paths.sort();
                 $.each(paths, function() {
                     $("<option value='" + src_url + this + "'>" + this + "</option>").appendTo("#geometry_files");
